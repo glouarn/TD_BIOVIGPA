@@ -1,0 +1,18 @@
+def EndEach(lstring):
+  print (len(lstring), lstring)
+
+Axiom: B
+
+derivation length: 5
+production:
+
+A --> AB
+B --> A
+
+interpretation:
+
+A --> ,(2)F(0.1)
+B --> ,(3)f(0.1)@O(0.1)f(0.1)
+
+endlsystem
+

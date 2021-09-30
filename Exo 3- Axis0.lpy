@@ -1,0 +1,15 @@
+def EndEach(lstring):
+  print (lstring)
+
+Axiom: A
+
+derivation length: 10
+production:
+A --> EnA
+
+
+interpretation:
+En --> SetColor(2)F(1,0.3)
+A --> SetColor(3)Sphere(0.35)
+
+endlsystem
