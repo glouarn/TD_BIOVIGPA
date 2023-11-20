@@ -1,0 +1,119 @@
+from math import exp
+from openalea.plantgl.all import *
+
+#Imports caribu
+from alinea.caribu.CaribuScene import CaribuScene
+#from alinea.caribu.sky_tools import turtle, GenSky, GetLight
+
+
+
+def expansion(t, a, delai):
+    "croissance sigmoidale"
+    return 1/(1+exp(-a*(t-delai)))
+
+def update_light_lstring(lstring, Dico_Par):
+    "update de la lstring avec resultats calcul lumiere ; renvoie liste des par"
+    ls_par = []
+    for mod in range(len(lstring)) :
+        if lstring[mod].name == 'A' or lstring[mod].name == 'B':
+					#index = mod.name.index
+        		calcpar = Dico_Par[mod]
+        		lstring[mod][1] = calcpar
+        		ls_par.append(calcpar)
+    
+    return lstring, ls_par
+
+
+
+Lfeuille = 0.9
+Lpetiole = 0.9
+Len = 1
+Dtige = 0.07
+phyllochron = 20 
+a = 0.05
+delaiF = 50
+delaiE = 0
+delaiLbud = 2*phyllochron
+treshPAR = 0.02
+
+opt_external_coupling = 0
+
+
+# Init light
+Dico_Par = {}
+calcpar = 0
+lspar = [calcpar]
+
+#carto plantes
+carto = [[0.,0.,0.], [5.,5.,0.]] #cm
+
+
+def StartEach():
+    global dotest
+    dotest = ((getIterationNb()/phyllochron % 2) == 0)
+
+
+def EndEach(lstring,lscene):
+    global calcpar, Dico_Par, lspar
+    
+    if opt_external_coupling != 1:
+        # Calculs de caribu et sortie du Dico contenant les valeurs de rayonnement
+        cc_scene = CaribuScene(scene = lscene)
+        aggregated_out = cc_scene.run(direct = True, infinite = False)
+        Dico_Par = aggregated_out[1]['default_band']['Ei'] 
+        
+        #mise a jour de la lstring
+        lstring, lspar = update_light_lstring(lstring, Dico_Par)
+    
+    print( getIterationNb(),'lspar(len/min/max):', len(lspar), min(lspar), max(lspar))
+
+
+module plante(nump) #partie aerienne de plante
+module A(age, PAR) # Apex primaire
+module En(age) # Entre-noeud
+module Pet(age) # Petiole
+module Leaf(age) # Feuille
+module B(age, PAR) # Apex d'axe secondaire
+
+module ombre # ombriere
+
+
+
+Axiom: [ombre][plante(0)A(0, 1.)]#[plante(1)A(0, 1.)]
+
+derivation length: 20*phyllochron
+production:
+A(age, PAR):
+    if age >= phyllochron and dotest == True : #branche a +45
+        produce En(0)[Pet(0)Leaf(0)][+(45)B(-delaiLbud, 1.)]A(0, 1.)
+    elif age >= phyllochron and dotest == False : #branche a -45
+        produce En(0)[Pet(0)Leaf(0)][-(45)B(-delaiLbud, 1.)]A(0, 1.)
+    else:        
+        produce A(age+1, PAR)
+
+En(age) --> En(age+1)
+Pet(age) --> Pet(age+1)
+Leaf(age) --> Leaf(age+1)
+
+B(age, PAR):
+    if age >= phyllochron and PAR>treshPAR:
+      produce En(0)[Pet(0)Leaf(0)]B(0, 1.)
+    else:
+      produce B(age+1, PAR)
+
+
+
+interpretation:
+plante(nump) --> @M(carto[nump][0], carto[nump][1], carto[nump][2])&(90) #place au point initial carto
+En(age) --> SetColor(2)F(Len*expansion(age, a, delaiE),Dtige)
+A(age, PAR) --> SetColor(3)f(0.2)Sphere(1.3*Dtige)
+Pet(age) --> SetColor(2)^(90)F(Lpetiole*expansion(age, a, delaiF),0.75*Dtige)
+Leaf(age) :
+    l = Lfeuille*expansion(age, a, delaiF)
+    produce SetColor(2)^(90)f(l/2)@o(l/2)
+
+B(age, PAR) --> SetColor(4)f(0.2)Sphere(1.3*Dtige)
+ombre --> SetColor(1)&(90)@M(-8.,6.,3.)@g(Box(0.05,5.,5.))
+
+endlsystem
+
