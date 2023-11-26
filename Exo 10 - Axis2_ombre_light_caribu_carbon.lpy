@@ -12,9 +12,10 @@ def expansion(t, a, delai):
     "croissance sigmoidale"
     return 1/(1+exp(-a*(t-delai)))
 
-def CarbonAssimilation(RelativeLightAbs, IncomingLight, RUE, Soilsurf=1.):
+def CarbonAssimilation(RelativeLightAbs, IncomingLight, RUE, FTSW, Soilsurf=1.):
     epsi = RelativeLightAbs/Soilsurf
-    C = epsi * IncomingLight * RUE
+    water_stress = FTSW #effet stress hydrique proportionnel a FTSW
+    C = epsi * IncomingLight * RUE * water_stress
     return C
 
 
@@ -53,6 +54,7 @@ AllocRoot = 0.2
 
 #Plant variables
 MS = 0.001
+FTSW = 1. #fraction of trasnpirable soil water
 dMSRoot = MS*AllocRoot
 
 # Meteo
@@ -64,7 +66,7 @@ calcpar = 0
 
 
 #carto positions plantes
-carto = [[0.,0.,0.], [5.,5.,0.]] #cm
+carto = [[0.,0.,0.]] #[[0.,0.,0.], [5.,5.,0.]] #cm
 
 #option
 opt_visu_ombre=1
@@ -88,10 +90,10 @@ def EndEach(lstring,lscene):
         #print(aggregated_out)
         
         #Carbon assimilation and allocation
-        dMS = CarbonAssimilation(cumlight, IncomingLight, RUE, Soilsurf=1.)
+        dMS = CarbonAssimilation(cumlight, IncomingLight, RUE, FTSW, Soilsurf=1.)
         MS += dMS
         dMSRoot = dMS*AllocRoot
-        print(cumlight, dMS,MS,dMSRoot)
+        print(cumlight, MS, dMS,dMSRoot) #+leaf area
 
 
 module plante(nump) #partie aerienne de plante
